@@ -4,6 +4,11 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
 import attendanceRoutes from './routes/attendance.js';
 import employeesRoutes from './routes/employees.js';
+import leaveRoutes from './routes/leave.js';
+import analyticsRoutes from './routes/analytics.js';
+import announcementsRoutes from './routes/announcements.js';
+import departmentsRoutes from './routes/departments.js';
+import positionsRoutes from './routes/positions.js';
 
 dotenv.config();
 
@@ -24,6 +29,11 @@ app.use((req, res, next) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/employees', employeesRoutes);
+app.use('/api/leave', leaveRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/announcements', announcementsRoutes);
+app.use('/api/departments', departmentsRoutes);
+app.use('/api/positions', positionsRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

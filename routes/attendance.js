@@ -177,4 +177,78 @@ router.get('/all', authenticateToken, isAdmin, async (req, res) => {
   }
 });
 
+// GET /api/attendance/reports/monthly — Monthly attendance report (Admin only)
+router.get('/reports/monthly', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const { month, department, employee_id } = req.query;
+
+    // Default to current month if not specified
+    const targetMonth = month || new Date().toISOString().slice(0, 7);
+
+    let query = `
+      SELECT 
+        u.id as user_id,
+        u.name,
+        u.email,
+        u.department,
+        COUNT(a.id) as days_present,
+        COUNT(CASE WHEN a.check_out IS NOT NULL THEN 1 END) as full_days,
+        MIN(a.check_in::text) as earliest_checkin,
+        MAX(a.check_out::text) as latest_checkout,
+        ROUND(AVG(
+          CASE WHEN a.check_out IS NOT NULL THEN
+            EXTRACT(EPOCH FROM (a.check_out::timestamp - a.check_in::timestamp)) / 3600
+          END
+        )::numeric, 2) as avg_hours_per_day
+      FROM users u
+      LEFT JOIN attendance a ON u.id = a.user_id 
+        AND TO_CHAR(a.date, 'YYYY-MM') = $1
+      WHERE u.role = 'employee'
+    `;
+
+    const params = [targetMonth];
+    let paramIndex = 2;
+
+    if (department) {
+      query += ` AND u.department = $${paramIndex}`;
+      params.push(department);
+      paramIndex++;
+    }
+
+    if (employee_id) {
+      query += ` AND u.id = $${paramIndex}`;
+      params.push(employee_id);
+      paramIndex++;
+    }
+
+    query += ' GROUP BY u.id, u.name, u.email, u.department ORDER BY u.name ASC';
+
+    const report = await db.all(query, params);
+
+    // Calculate working days in the month
+    const [year, mon] = targetMonth.split('-').map(Number);
+    const daysInMonth = new Date(year, mon, 0).getDate();
+    let workingDays = 0;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const day = new Date(year, mon - 1, d).getDay();
+      if (day !== 0 && day !== 6) workingDays++;
+    }
+
+    res.json({
+      month: targetMonth,
+      workingDays,
+      report: report.map(r => ({
+        ...r,
+        days_present: parseInt(r.days_present) || 0,
+        full_days: parseInt(r.full_days) || 0,
+        days_absent: workingDays - (parseInt(r.days_present) || 0),
+        avg_hours_per_day: parseFloat(r.avg_hours_per_day) || 0
+      }))
+    });
+  } catch (error) {
+    console.error('Monthly report error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 export default router;

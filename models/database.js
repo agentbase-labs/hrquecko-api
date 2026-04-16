@@ -20,10 +20,20 @@ const createTables = async () => {
         email TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
         department TEXT,
+        position TEXT,
+        phone TEXT,
         role TEXT DEFAULT 'employee',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Add position and phone columns if they don't exist (for existing DBs)
+    await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS position TEXT;
+    `).catch(() => {});
+    await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT;
+    `).catch(() => {});
 
     // Attendance table
     await client.query(`
