@@ -36,7 +36,7 @@ router.post('/signup', async (req, res) => {
     // Generate token
     const token = jwt.sign(
       { id: userId, email, role: 'employee' },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET || "hrquecko_jwt_fallback_secret_2026",
       { expiresIn: '7d' }
     );
 
@@ -82,7 +82,7 @@ router.post('/login', async (req, res) => {
     // Generate token
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET || "hrquecko_jwt_fallback_secret_2026",
       { expiresIn: '7d' }
     );
 
